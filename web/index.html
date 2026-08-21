@@ -4,20 +4,27 @@
   <meta charset="utf-8">
   <title>Druid II</title>
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      margin: 0;
-      background: #0a0a0a;
-      color: #c8a050;
-      font-family: monospace;
+      background: #0a0a14;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      font-size: 2rem;
+    }
+    canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
     }
   </style>
 </head>
 <body>
-  <span>Druid II — coming soon</span>
+  <script src="wasm_exec.js"></script>
+  <script>
+    const go = new Go();
+    WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject)
+      .then(result => go.run(result.instance))
+      .catch(err => console.error("failed to load wasm:", err));
+  </script>
 </body>
 </html>
