@@ -24,6 +24,7 @@ type Player struct {
 	Dir           Direction
 	ShootDX       float64 // normalized shoot direction, updated when moving
 	ShootDY       float64
+	Invincible    float64 // seconds of invincibility remaining after taking damage
 	frame         int
 	frameTimer    float64
 	// sprite *ebiten.Image  // wired in Fase 8
@@ -44,12 +45,27 @@ func NewPlayer(x, y float64) *Player {
 
 func (p *Player) IsAlive() bool { return p.HP > 0 }
 
+func (p *Player) TakeDamage(dmg int) {
+	if p.Invincible > 0 {
+		return
+	}
+	p.HP -= dmg
+	if p.HP < 0 {
+		p.HP = 0
+	}
+	p.Invincible = 1.0
+}
+
 func (p *Player) Bounds() image.Rectangle {
 	x, y := int(p.X), int(p.Y)
 	return image.Rect(x-playerHalfSize, y-playerHalfSize, x+playerHalfSize, y+playerHalfSize)
 }
 
 func (p *Player) Update(dt float64, w *world.World) error {
+	if p.Invincible > 0 {
+		p.Invincible -= dt
+	}
+
 	up := ebiten.IsKeyPressed(ebiten.KeyArrowUp) || ebiten.IsKeyPressed(ebiten.KeyW)
 	down := ebiten.IsKeyPressed(ebiten.KeyArrowDown) || ebiten.IsKeyPressed(ebiten.KeyS)
 	left := ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || ebiten.IsKeyPressed(ebiten.KeyA)

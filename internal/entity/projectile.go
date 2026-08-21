@@ -26,6 +26,8 @@ func NewProjectile(x, y, vx, vy float64, owner OwnerType, damage int) *Projectil
 
 func (p *Projectile) IsAlive() bool { return p.alive }
 
+func (p *Projectile) Kill() { p.alive = false }
+
 func (p *Projectile) Bounds() image.Rectangle {
 	x, y := int(p.X), int(p.Y)
 	return image.Rect(x-projectileHalfSize, y-projectileHalfSize, x+projectileHalfSize, y+projectileHalfSize)
