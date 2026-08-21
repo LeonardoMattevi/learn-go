@@ -30,7 +30,7 @@ jobs:
       - name: Build WASM
         run: |
           GOOS=js GOARCH=wasm go build -o web/main.wasm .
-          cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" web/
+          find "$(go env GOROOT)" -name "wasm_exec.js" -exec cp {} web/ \;
       - name: Deploy to Cloudflare Pages
         run: npx wrangler pages deploy web/ --project-name go-game
         env:

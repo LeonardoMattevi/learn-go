@@ -10,7 +10,7 @@ build:
 
 wasm:
 	GOOS=js GOARCH=wasm go build -o $(WASM_OUT) .
-	cp "$$(go env GOROOT)/misc/wasm/wasm_exec.js" $(WASM_JS)
+	find "$$(go env GOROOT)" -name "wasm_exec.js" -exec cp {} $(WASM_JS) \;
 
 test:
 	go test ./... -cover
