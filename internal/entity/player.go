@@ -22,6 +22,8 @@ type Player struct {
 	HP, MaxHP     int
 	Mana, MaxMana int
 	Dir           Direction
+	ShootDX       float64 // normalized shoot direction, updated when moving
+	ShootDY       float64
 	frame         int
 	frameTimer    float64
 	// sprite *ebiten.Image  // wired in Fase 8
@@ -36,6 +38,7 @@ func NewPlayer(x, y float64) *Player {
 		Mana:    10,
 		MaxMana: 10,
 		Dir:     DirDown,
+		ShootDY: 1, // default facing down
 	}
 }
 
@@ -47,29 +50,42 @@ func (p *Player) Bounds() image.Rectangle {
 }
 
 func (p *Player) Update(dt float64, w *world.World) error {
+	up := ebiten.IsKeyPressed(ebiten.KeyArrowUp) || ebiten.IsKeyPressed(ebiten.KeyW)
+	down := ebiten.IsKeyPressed(ebiten.KeyArrowDown) || ebiten.IsKeyPressed(ebiten.KeyS)
+	left := ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || ebiten.IsKeyPressed(ebiten.KeyA)
+	right := ebiten.IsKeyPressed(ebiten.KeyArrowRight) || ebiten.IsKeyPressed(ebiten.KeyD)
+
 	var dx, dy float64
 
-	if ebiten.IsKeyPressed(ebiten.KeyArrowUp) || ebiten.IsKeyPressed(ebiten.KeyW) {
-		dy = -1
-		p.Dir = DirUp
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyArrowDown) || ebiten.IsKeyPressed(ebiten.KeyS) {
-		dy = 1
-		p.Dir = DirDown
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
+	// Opposite keys cancel each other out.
+	if left && !right {
 		dx = -1
 		p.Dir = DirLeft
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyArrowRight) || ebiten.IsKeyPressed(ebiten.KeyD) {
+	if right && !left {
 		dx = 1
 		p.Dir = DirRight
+	}
+	// Vertical wins over horizontal for Dir when both axes are active.
+	if up && !down {
+		dy = -1
+		p.Dir = DirUp
+	}
+	if down && !up {
+		dy = 1
+		p.Dir = DirDown
 	}
 
 	// Normalize diagonal so speed is consistent in all directions.
 	if dx != 0 && dy != 0 {
 		dx *= 0.7071
 		dy *= 0.7071
+	}
+
+	// Track shoot direction from actual movement vector.
+	if dx != 0 || dy != 0 {
+		p.ShootDX = dx
+		p.ShootDY = dy
 	}
 
 	if dx != 0 || dy != 0 {

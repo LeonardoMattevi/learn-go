@@ -73,14 +73,6 @@ func New() *Game {
 	return g
 }
 
-// dirToVelocity maps a Direction to a (vx, vy) unit vector scaled by projectileSpeed.
-var dirToVelocity = map[entity.Direction][2]float64{
-	entity.DirUp:    {0, -projectileSpeed},
-	entity.DirDown:  {0, projectileSpeed},
-	entity.DirLeft:  {-projectileSpeed, 0},
-	entity.DirRight: {projectileSpeed, 0},
-}
-
 func (g *Game) Update() error {
 	if err := g.player.Update(dt, g.world); err != nil {
 		return err
@@ -91,12 +83,12 @@ func (g *Game) Update() error {
 		g.shootCooldown -= dt
 	}
 
-	// Fire on SPACE
+	// Fire on SPACE using the player's current movement direction.
 	if ebiten.IsKeyPressed(ebiten.KeySpace) && g.shootCooldown <= 0 {
-		v := dirToVelocity[g.player.Dir]
 		g.projectiles = append(g.projectiles, entity.NewProjectile(
 			g.player.X, g.player.Y,
-			v[0], v[1],
+			g.player.ShootDX*projectileSpeed,
+			g.player.ShootDY*projectileSpeed,
 			entity.OwnerPlayer, 1,
 		))
 		g.shootCooldown = shootCooldownMax
