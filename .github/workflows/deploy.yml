@@ -28,8 +28,8 @@ jobs:
           go-version-file: go.mod
       - name: Build WASM
         run: |
-          GOOS=js GOARCH=wasm go build -o web/main.wasm . 2>/dev/null || echo "no main package yet, skipping wasm"
-          [ -f web/main.wasm ] && cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" web/ || true
+          GOOS=js GOARCH=wasm go build -o web/main.wasm .
+          cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" web/
       - uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
