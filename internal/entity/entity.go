@@ -25,3 +25,10 @@ const (
 	DirLeft
 	DirRight
 )
+
+type OwnerType int
+
+const (
+	OwnerPlayer OwnerType = iota
+	OwnerEnemy
+)

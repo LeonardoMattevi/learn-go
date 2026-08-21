@@ -1,0 +1,66 @@
+package entity
+
+import (
+	"image"
+	"image/color"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
+	"github.com/LeonardoMattevi/go-game/internal/camera"
+	"github.com/LeonardoMattevi/go-game/internal/world"
+)
+
+const projectileHalfSize = 3
+
+type Projectile struct {
+	X, Y   float64
+	VX, VY float64
+	Owner  OwnerType
+	Damage int
+	alive  bool
+}
+
+func NewProjectile(x, y, vx, vy float64, owner OwnerType, damage int) *Projectile {
+	return &Projectile{X: x, Y: y, VX: vx, VY: vy, Owner: owner, Damage: damage, alive: true}
+}
+
+func (p *Projectile) IsAlive() bool { return p.alive }
+
+func (p *Projectile) Bounds() image.Rectangle {
+	x, y := int(p.X), int(p.Y)
+	return image.Rect(x-projectileHalfSize, y-projectileHalfSize, x+projectileHalfSize, y+projectileHalfSize)
+}
+
+func (p *Projectile) Update(dt float64, w *world.World) error {
+	p.X += p.VX * dt
+	p.Y += p.VY * dt
+	tx, ty := w.PixelToTile(p.X, p.Y)
+	if w.IsSolid(tx, ty) || p.X < 0 || p.Y < 0 ||
+		p.X > float64(w.PixelWidth()) || p.Y > float64(w.PixelHeight()) {
+		p.alive = false
+	}
+	return nil
+}
+
+func (p *Projectile) Draw(screen *ebiten.Image, cam camera.Camera) {
+	sx, sy := cam.WorldToScreen(p.X, p.Y)
+	vector.DrawFilledRect(
+		screen,
+		float32(sx)-projectileHalfSize, float32(sy)-projectileHalfSize,
+		projectileHalfSize*2, projectileHalfSize*2,
+		color.RGBA{R: 255, G: 220, B: 50, A: 255},
+		false,
+	)
+}
+
+// RemoveDead filters out dead projectiles in-place without allocating a new slice.
+func RemoveDead(ps []*Projectile) []*Projectile {
+	n := 0
+	for _, p := range ps {
+		if p.alive {
+			ps[n] = p
+			n++
+		}
+	}
+	return ps[:n]
+}

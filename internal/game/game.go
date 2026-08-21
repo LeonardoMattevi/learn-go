@@ -10,9 +10,11 @@ import (
 )
 
 const (
-	ScreenWidth  = 320
-	ScreenHeight = 240
-	dt           = 1.0 / 60.0
+	ScreenWidth    = 320
+	ScreenHeight   = 240
+	dt             = 1.0 / 60.0
+	projectileSpeed   = 200.0
+	shootCooldownMax  = 0.25
 )
 
 // 40×30 tile map (640×480 pixel world, 320×240 visible = scrollable).
@@ -52,9 +54,11 @@ var levelTiles = [][]world.Tile{
 }
 
 type Game struct {
-	world  *world.World
-	cam    camera.Camera
-	player *entity.Player
+	world         *world.World
+	cam           camera.Camera
+	player        *entity.Player
+	projectiles   []*entity.Projectile
+	shootCooldown float64
 }
 
 func New() *Game {
@@ -69,10 +73,41 @@ func New() *Game {
 	return g
 }
 
+// dirToVelocity maps a Direction to a (vx, vy) unit vector scaled by projectileSpeed.
+var dirToVelocity = map[entity.Direction][2]float64{
+	entity.DirUp:    {0, -projectileSpeed},
+	entity.DirDown:  {0, projectileSpeed},
+	entity.DirLeft:  {-projectileSpeed, 0},
+	entity.DirRight: {projectileSpeed, 0},
+}
+
 func (g *Game) Update() error {
 	if err := g.player.Update(dt, g.world); err != nil {
 		return err
 	}
+
+	// Shoot cooldown
+	if g.shootCooldown > 0 {
+		g.shootCooldown -= dt
+	}
+
+	// Fire on SPACE
+	if ebiten.IsKeyPressed(ebiten.KeySpace) && g.shootCooldown <= 0 {
+		v := dirToVelocity[g.player.Dir]
+		g.projectiles = append(g.projectiles, entity.NewProjectile(
+			g.player.X, g.player.Y,
+			v[0], v[1],
+			entity.OwnerPlayer, 1,
+		))
+		g.shootCooldown = shootCooldownMax
+	}
+
+	// Update and clean up projectiles
+	for _, p := range g.projectiles {
+		p.Update(dt, g.world)
+	}
+	g.projectiles = entity.RemoveDead(g.projectiles)
+
 	g.cam.Follow(g.player.X, g.player.Y, g.world.PixelWidth(), g.world.PixelHeight())
 	return nil
 }
@@ -80,6 +115,9 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
 	g.world.Draw(screen, g.cam.X, g.cam.Y, ScreenWidth, ScreenHeight)
+	for _, p := range g.projectiles {
+		p.Draw(screen, g.cam)
+	}
 	g.player.Draw(screen, g.cam)
 }
 
