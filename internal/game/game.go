@@ -4,16 +4,15 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/LeonardoMattevi/go-game/internal/camera"
+	"github.com/LeonardoMattevi/go-game/internal/entity"
 	"github.com/LeonardoMattevi/go-game/internal/world"
 )
 
 const (
-	ScreenWidth      = 320
-	ScreenHeight     = 240
-	dt               = 1.0 / 60.0
-	placeholderSpeed = 120.0 // pixels per second
+	ScreenWidth  = 320
+	ScreenHeight = 240
+	dt           = 1.0 / 60.0
 )
 
 // 40×30 tile map (640×480 pixel world, 320×240 visible = scrollable).
@@ -55,42 +54,33 @@ var levelTiles = [][]world.Tile{
 type Game struct {
 	world  *world.World
 	cam    camera.Camera
-	px, py float64 // placeholder position in world pixels
+	player *entity.Player
 }
 
 func New() *Game {
+	startX := float64(2*world.TileSize + world.TileSize/2)
+	startY := float64(2*world.TileSize + world.TileSize/2)
 	g := &Game{
-		world: world.New(levelTiles),
-		cam:   camera.Camera{ScreenW: ScreenWidth, ScreenH: ScreenHeight},
-		px:    2 * world.TileSize,
-		py:    2 * world.TileSize,
+		world:  world.New(levelTiles),
+		cam:    camera.Camera{ScreenW: ScreenWidth, ScreenH: ScreenHeight},
+		player: entity.NewPlayer(startX, startY),
 	}
-	g.cam.Follow(g.px, g.py, g.world.PixelWidth(), g.world.PixelHeight())
+	g.cam.Follow(g.player.X, g.player.Y, g.world.PixelWidth(), g.world.PixelHeight())
 	return g
 }
 
 func (g *Game) Update() error {
-	if ebiten.IsKeyPressed(ebiten.KeyArrowUp) || ebiten.IsKeyPressed(ebiten.KeyW) {
-		g.py -= placeholderSpeed * dt
+	if err := g.player.Update(dt, g.world); err != nil {
+		return err
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyArrowDown) || ebiten.IsKeyPressed(ebiten.KeyS) {
-		g.py += placeholderSpeed * dt
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || ebiten.IsKeyPressed(ebiten.KeyA) {
-		g.px -= placeholderSpeed * dt
-	}
-	if ebiten.IsKeyPressed(ebiten.KeyArrowRight) || ebiten.IsKeyPressed(ebiten.KeyD) {
-		g.px += placeholderSpeed * dt
-	}
-	g.cam.Follow(g.px, g.py, g.world.PixelWidth(), g.world.PixelHeight())
+	g.cam.Follow(g.player.X, g.player.Y, g.world.PixelWidth(), g.world.PixelHeight())
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{R: 10, G: 10, B: 20, A: 255})
 	g.world.Draw(screen, g.cam.X, g.cam.Y, ScreenWidth, ScreenHeight)
-	sx, sy := g.cam.WorldToScreen(g.px, g.py)
-	vector.DrawFilledRect(screen, float32(sx)-4, float32(sy)-4, 8, 8, color.RGBA{R: 0, G: 200, B: 80, A: 255}, false)
+	g.player.Draw(screen, g.cam)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
