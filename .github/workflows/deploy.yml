@@ -14,7 +14,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: go build ./...
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libgl1-mesa-dev libasound2-dev
       - run: go test ./... -cover
 
   deploy:
@@ -30,9 +31,8 @@ jobs:
         run: |
           GOOS=js GOARCH=wasm go build -o web/main.wasm .
           cp "$(go env GOROOT)/misc/wasm/wasm_exec.js" web/
-      - uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: go-game
-          directory: web
+      - name: Deploy to Cloudflare Pages
+        run: npx wrangler pages deploy web/ --project-name go-game
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
