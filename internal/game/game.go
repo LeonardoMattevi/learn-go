@@ -4,6 +4,7 @@ import (
 	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/LeonardoMattevi/go-game/internal/camera"
 	"github.com/LeonardoMattevi/go-game/internal/entity"
 	"github.com/LeonardoMattevi/go-game/internal/world"
@@ -15,6 +16,14 @@ const (
 	dt               = 1.0 / 60.0
 	projectileSpeed  = 200.0
 	shootCooldownMax = 0.25
+)
+
+type GameState int
+
+const (
+	StatePlaying       GameState = iota
+	StateGameOver
+	StateLevelComplete
 )
 
 // 40×30 tile map (640×480 pixel world, 320×240 visible = scrollable).
@@ -76,6 +85,7 @@ type Game struct {
 	projectiles   []*entity.Projectile
 	enemies       []*entity.Enemy
 	shootCooldown float64
+	state         GameState
 }
 
 func New() *Game {
@@ -98,6 +108,14 @@ func New() *Game {
 }
 
 func (g *Game) Update() error {
+	// Handle restart from non-playing states.
+	if g.state != StatePlaying {
+		if inpututil.IsKeyJustPressed(ebiten.KeyR) {
+			*g = *New()
+		}
+		return nil
+	}
+
 	if err := g.player.Update(dt, g.world); err != nil {
 		return err
 	}
@@ -163,6 +181,13 @@ func (g *Game) Update() error {
 	g.projectiles = entity.RemoveDead(g.projectiles)
 	g.enemies = entity.RemoveDeadEnemies(g.enemies)
 
+	// State transitions.
+	if g.player.HP <= 0 {
+		g.state = StateGameOver
+	} else if len(g.enemies) == 0 {
+		g.state = StateLevelComplete
+	}
+
 	g.cam.Follow(g.player.X, g.player.Y, g.world.PixelWidth(), g.world.PixelHeight())
 	return nil
 }
@@ -177,6 +202,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		e.Draw(screen, g.cam)
 	}
 	g.player.Draw(screen, g.cam)
+	g.drawHUD(screen)
+	if g.state != StatePlaying {
+		g.drawOverlay(screen)
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
