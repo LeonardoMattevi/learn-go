@@ -2,6 +2,7 @@ package game
 
 import (
 	"image/color"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -158,10 +159,20 @@ func (g *Game) Update() error {
 		ebiten.IsKeyPressed(ebiten.KeyArrowUp) ||
 		ebiten.IsKeyPressed(ebiten.KeyArrowDown)
 	if (arrowHeld || g.rightStick.Active()) && g.shootCooldown <= 0 {
+		sdx, sdy := g.player.ShootDX, g.player.ShootDY
+		// Joystick: remap stick magnitude [0,1] → [0.8,1.0] so speed
+		// changes only 20% from center to edge (feature, not a bug).
+		if g.rightStick.Active() {
+			if mag := math.Sqrt(sdx*sdx + sdy*sdy); mag > 0 {
+				scaled := 0.8 + 0.2*mag
+				sdx = sdx / mag * scaled
+				sdy = sdy / mag * scaled
+			}
+		}
 		g.projectiles = append(g.projectiles, entity.NewProjectile(
 			g.player.X, g.player.Y,
-			g.player.ShootDX*projectileSpeed,
-			g.player.ShootDY*projectileSpeed,
+			sdx*projectileSpeed,
+			sdy*projectileSpeed,
 			entity.OwnerPlayer, 1, g.imgProjPlayer,
 		))
 		g.shootCooldown = shootCooldownMax
