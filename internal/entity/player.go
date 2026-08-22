@@ -24,9 +24,13 @@ type Player struct {
 	ShootDX       float64
 	ShootDY       float64
 	Invincible    float64
-	frame         int
-	frameTimer    float64
-	spr           *sprite.Sprite
+	// Joystick input set by game.Update before calling Update().
+	JoyMoveDX, JoyMoveDY float64
+	JoyAimDX, JoyAimDY   float64
+	JoyAimActive         bool
+	frame      int
+	frameTimer float64
+	spr        *sprite.Sprite
 }
 
 func NewPlayer(x, y float64, spr *sprite.Sprite) *Player {
@@ -93,6 +97,26 @@ func (p *Player) Update(dt float64, w *world.World) error {
 		p.Dir = DirDown
 	}
 
+	// Joystick overrides keyboard when left stick is active.
+	if p.JoyMoveDX != 0 || p.JoyMoveDY != 0 {
+		dx = p.JoyMoveDX
+		dy = p.JoyMoveDY
+		// Dir from joystick angle (compare squares to avoid math.Abs import).
+		if dy*dy >= dx*dx {
+			if dy < 0 {
+				p.Dir = DirUp
+			} else {
+				p.Dir = DirDown
+			}
+		} else {
+			if dx < 0 {
+				p.Dir = DirLeft
+			} else {
+				p.Dir = DirRight
+			}
+		}
+	}
+
 	// Normalize diagonal so speed is consistent in all directions.
 	if dx != 0 && dy != 0 {
 		dx *= 0.7071
@@ -125,6 +149,11 @@ func (p *Player) Update(dt float64, w *world.World) error {
 	if sdx != 0 || sdy != 0 {
 		p.ShootDX = sdx
 		p.ShootDY = sdy
+	}
+	// Right joystick overrides arrow-key aim when active.
+	if p.JoyAimActive {
+		p.ShootDX = p.JoyAimDX
+		p.ShootDY = p.JoyAimDY
 	}
 
 	if dx != 0 || dy != 0 {

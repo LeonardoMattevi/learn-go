@@ -89,6 +89,8 @@ type Game struct {
 	state         GameState
 	imgProjPlayer *ebiten.Image
 	imgProjEnemy  *ebiten.Image
+	leftStick     *VirtualStick
+	rightStick    *VirtualStick
 }
 
 func New() *Game {
@@ -103,9 +105,11 @@ func New() *Game {
 
 	px, py := tileCenter(2, 2)
 	g := &Game{
-		world:  world.New(levelTiles, tileFloor, tileWall),
-		cam:    camera.Camera{ScreenW: ScreenWidth, ScreenH: ScreenHeight},
-		player: entity.NewPlayer(px, py, sprPlayer),
+		world:      world.New(levelTiles, tileFloor, tileWall),
+		cam:        camera.Camera{ScreenW: ScreenWidth, ScreenH: ScreenHeight},
+		player:     entity.NewPlayer(px, py, sprPlayer),
+		leftStick:  newStick(false, 55, ScreenHeight-55),
+		rightStick: newStick(true, ScreenWidth-55, ScreenHeight-55),
 		enemies: []*entity.Enemy{
 			walker(30, 2, sprWalker, imgProjEnemy),
 			walker(30, 10, sprWalker, imgProjEnemy),
@@ -130,6 +134,15 @@ func (g *Game) Update() error {
 		return nil
 	}
 
+	// Update joysticks and feed their output to the player.
+	g.leftStick.Update(ScreenWidth)
+	g.rightStick.Update(ScreenWidth)
+	g.player.JoyMoveDX = g.leftStick.DX()
+	g.player.JoyMoveDY = g.leftStick.DY()
+	g.player.JoyAimDX = g.rightStick.DX()
+	g.player.JoyAimDY = g.rightStick.DY()
+	g.player.JoyAimActive = g.rightStick.Active()
+
 	if err := g.player.Update(dt, g.world); err != nil {
 		return err
 	}
@@ -139,12 +152,12 @@ func (g *Game) Update() error {
 		g.shootCooldown -= dt
 	}
 
-	// Auto-fire while any arrow key is held (aim + shoot are the same input).
+	// Auto-fire: arrow keys (desktop) or right joystick (touch).
 	arrowHeld := ebiten.IsKeyPressed(ebiten.KeyArrowLeft) ||
 		ebiten.IsKeyPressed(ebiten.KeyArrowRight) ||
 		ebiten.IsKeyPressed(ebiten.KeyArrowUp) ||
 		ebiten.IsKeyPressed(ebiten.KeyArrowDown)
-	if arrowHeld && g.shootCooldown <= 0 {
+	if (arrowHeld || g.rightStick.Active()) && g.shootCooldown <= 0 {
 		g.projectiles = append(g.projectiles, entity.NewProjectile(
 			g.player.X, g.player.Y,
 			g.player.ShootDX*projectileSpeed,
@@ -221,6 +234,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 	g.player.Draw(screen, g.cam)
 	g.drawHUD(screen)
+	g.leftStick.Draw(screen)
+	g.rightStick.Draw(screen)
 	if g.state != StatePlaying {
 		g.drawOverlay(screen)
 	}
