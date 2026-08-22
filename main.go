@@ -4,7 +4,7 @@ import (
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/LeonardoMattevi/go-game/internal/game"
+	"github.com/LeonardoMattevi/go-game/internal/scene"
 )
 
 func main() {
@@ -12,7 +12,7 @@ func main() {
 	ebiten.SetWindowTitle("Druid II")
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 
-	if err := ebiten.RunGame(game.New()); err != nil {
+	if err := ebiten.RunGame(scene.NewRoot()); err != nil {
 		log.Fatal(err)
 	}
 }
