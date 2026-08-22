@@ -127,9 +127,15 @@ func New() *Game {
 }
 
 func (g *Game) Update() error {
-	// Handle restart from non-playing states.
+	// Handle restart from non-playing states: R key or any tap.
 	if g.state != StatePlaying {
-		if inpututil.IsKeyJustPressed(ebiten.KeyR) {
+		restart := inpututil.IsKeyJustPressed(ebiten.KeyR)
+		if !restart {
+			var released []ebiten.TouchID
+			released = inpututil.AppendJustReleasedTouchIDs(released)
+			restart = len(released) > 0
+		}
+		if restart {
 			*g = *New()
 		}
 		return nil

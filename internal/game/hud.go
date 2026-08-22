@@ -52,10 +52,10 @@ func (g *Game) drawOverlay(screen *ebiten.Image) {
 	switch g.state {
 	case StateGameOver:
 		printCentered(screen, "GAME OVER", cy-8)
-		printCentered(screen, "Press R to restart", cy+8)
+		printCentered(screen, "Tap or press R to restart", cy+8)
 	case StateLevelComplete:
 		printCentered(screen, "LEVEL COMPLETE!", cy-8)
-		printCentered(screen, "Press R to restart", cy+8)
+		printCentered(screen, "Tap or press R to restart", cy+8)
 	}
 }
 
