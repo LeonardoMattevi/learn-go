@@ -66,10 +66,11 @@ func (p *Player) Update(dt float64, w *world.World) error {
 		p.Invincible -= dt
 	}
 
-	up := ebiten.IsKeyPressed(ebiten.KeyArrowUp) || ebiten.IsKeyPressed(ebiten.KeyW)
-	down := ebiten.IsKeyPressed(ebiten.KeyArrowDown) || ebiten.IsKeyPressed(ebiten.KeyS)
-	left := ebiten.IsKeyPressed(ebiten.KeyArrowLeft) || ebiten.IsKeyPressed(ebiten.KeyA)
-	right := ebiten.IsKeyPressed(ebiten.KeyArrowRight) || ebiten.IsKeyPressed(ebiten.KeyD)
+	// Movement: WASD only.
+	up := ebiten.IsKeyPressed(ebiten.KeyW)
+	down := ebiten.IsKeyPressed(ebiten.KeyS)
+	left := ebiten.IsKeyPressed(ebiten.KeyA)
+	right := ebiten.IsKeyPressed(ebiten.KeyD)
 
 	var dx, dy float64
 
@@ -98,10 +99,32 @@ func (p *Player) Update(dt float64, w *world.World) error {
 		dy *= 0.7071
 	}
 
-	// Track shoot direction from actual movement vector.
-	if dx != 0 || dy != 0 {
-		p.ShootDX = dx
-		p.ShootDY = dy
+	// Aim direction: arrow keys, independent of movement.
+	// Retains last aimed direction when no arrow is held.
+	aL := ebiten.IsKeyPressed(ebiten.KeyArrowLeft)
+	aR := ebiten.IsKeyPressed(ebiten.KeyArrowRight)
+	aU := ebiten.IsKeyPressed(ebiten.KeyArrowUp)
+	aD := ebiten.IsKeyPressed(ebiten.KeyArrowDown)
+	var sdx, sdy float64
+	if aL && !aR {
+		sdx = -1
+	}
+	if aR && !aL {
+		sdx = 1
+	}
+	if aU && !aD {
+		sdy = -1
+	}
+	if aD && !aU {
+		sdy = 1
+	}
+	if sdx != 0 && sdy != 0 {
+		sdx *= 0.7071
+		sdy *= 0.7071
+	}
+	if sdx != 0 || sdy != 0 {
+		p.ShootDX = sdx
+		p.ShootDY = sdy
 	}
 
 	if dx != 0 || dy != 0 {

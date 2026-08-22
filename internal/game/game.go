@@ -125,8 +125,12 @@ func (g *Game) Update() error {
 		g.shootCooldown -= dt
 	}
 
-	// Fire on SPACE using the player's current movement direction.
-	if ebiten.IsKeyPressed(ebiten.KeySpace) && g.shootCooldown <= 0 {
+	// Auto-fire while any arrow key is held (aim + shoot are the same input).
+	arrowHeld := ebiten.IsKeyPressed(ebiten.KeyArrowLeft) ||
+		ebiten.IsKeyPressed(ebiten.KeyArrowRight) ||
+		ebiten.IsKeyPressed(ebiten.KeyArrowUp) ||
+		ebiten.IsKeyPressed(ebiten.KeyArrowDown)
+	if arrowHeld && g.shootCooldown <= 0 {
 		g.projectiles = append(g.projectiles, entity.NewProjectile(
 			g.player.X, g.player.Y,
 			g.player.ShootDX*projectileSpeed,
