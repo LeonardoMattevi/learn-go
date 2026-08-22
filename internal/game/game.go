@@ -7,6 +7,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/LeonardoMattevi/go-game/internal/camera"
 	"github.com/LeonardoMattevi/go-game/internal/entity"
+	"github.com/LeonardoMattevi/go-game/internal/sprite"
 	"github.com/LeonardoMattevi/go-game/internal/world"
 )
 
@@ -68,14 +69,14 @@ func tileCenter(col, row int) (float64, float64) {
 		float64(row*world.TileSize + world.TileSize/2)
 }
 
-func walker(col, row int) *entity.Enemy {
+func walker(col, row int, spr *sprite.Sprite, projImg *ebiten.Image) *entity.Enemy {
 	x, y := tileCenter(col, row)
-	return entity.NewEnemy(x, y, entity.EnemyWalker)
+	return entity.NewEnemy(x, y, entity.EnemyWalker, spr, projImg)
 }
 
-func shooter(col, row int) *entity.Enemy {
+func shooter(col, row int, spr *sprite.Sprite, projImg *ebiten.Image) *entity.Enemy {
 	x, y := tileCenter(col, row)
-	return entity.NewEnemy(x, y, entity.EnemyShooter)
+	return entity.NewEnemy(x, y, entity.EnemyShooter, spr, projImg)
 }
 
 type Game struct {
@@ -86,22 +87,35 @@ type Game struct {
 	enemies       []*entity.Enemy
 	shootCooldown float64
 	state         GameState
+	imgProjPlayer *ebiten.Image
+	imgProjEnemy  *ebiten.Image
 }
 
 func New() *Game {
+	// Build all sprites once at startup.
+	sprPlayer  := sprite.BuildPlayer()
+	sprWalker  := sprite.BuildWalker()
+	sprShooter := sprite.BuildShooter()
+	imgProjPlayer := sprite.BuildProjectilePlayer()
+	imgProjEnemy  := sprite.BuildProjectileEnemy()
+	tileFloor := sprite.BuildTileFloor()
+	tileWall  := sprite.BuildTileWall()
+
 	px, py := tileCenter(2, 2)
 	g := &Game{
-		world:  world.New(levelTiles),
+		world:  world.New(levelTiles, tileFloor, tileWall),
 		cam:    camera.Camera{ScreenW: ScreenWidth, ScreenH: ScreenHeight},
-		player: entity.NewPlayer(px, py),
+		player: entity.NewPlayer(px, py, sprPlayer),
 		enemies: []*entity.Enemy{
-			walker(30, 2),
-			walker(30, 10),
-			walker(5, 22),
-			walker(20, 25),
-			shooter(15, 13),
-			shooter(32, 20),
+			walker(30, 2, sprWalker, imgProjEnemy),
+			walker(30, 10, sprWalker, imgProjEnemy),
+			walker(5, 22, sprWalker, imgProjEnemy),
+			walker(20, 25, sprWalker, imgProjEnemy),
+			shooter(15, 13, sprShooter, imgProjEnemy),
+			shooter(32, 20, sprShooter, imgProjEnemy),
 		},
+		imgProjPlayer: imgProjPlayer,
+		imgProjEnemy:  imgProjEnemy,
 	}
 	g.cam.Follow(g.player.X, g.player.Y, g.world.PixelWidth(), g.world.PixelHeight())
 	return g
@@ -135,7 +149,7 @@ func (g *Game) Update() error {
 			g.player.X, g.player.Y,
 			g.player.ShootDX*projectileSpeed,
 			g.player.ShootDY*projectileSpeed,
-			entity.OwnerPlayer, 1,
+			entity.OwnerPlayer, 1, g.imgProjPlayer,
 		))
 		g.shootCooldown = shootCooldownMax
 	}

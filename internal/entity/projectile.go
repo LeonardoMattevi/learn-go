@@ -2,10 +2,8 @@ package entity
 
 import (
 	"image"
-	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/LeonardoMattevi/go-game/internal/camera"
 	"github.com/LeonardoMattevi/go-game/internal/world"
 )
@@ -18,10 +16,11 @@ type Projectile struct {
 	Owner  OwnerType
 	Damage int
 	alive  bool
+	img    *ebiten.Image
 }
 
-func NewProjectile(x, y, vx, vy float64, owner OwnerType, damage int) *Projectile {
-	return &Projectile{X: x, Y: y, VX: vx, VY: vy, Owner: owner, Damage: damage, alive: true}
+func NewProjectile(x, y, vx, vy float64, owner OwnerType, damage int, img *ebiten.Image) *Projectile {
+	return &Projectile{X: x, Y: y, VX: vx, VY: vy, Owner: owner, Damage: damage, alive: true, img: img}
 }
 
 func (p *Projectile) IsAlive() bool { return p.alive }
@@ -46,13 +45,11 @@ func (p *Projectile) Update(dt float64, w *world.World) error {
 
 func (p *Projectile) Draw(screen *ebiten.Image, cam camera.Camera) {
 	sx, sy := cam.WorldToScreen(p.X, p.Y)
-	vector.DrawFilledRect(
-		screen,
-		float32(sx)-projectileHalfSize, float32(sy)-projectileHalfSize,
-		projectileHalfSize*2, projectileHalfSize*2,
-		color.RGBA{R: 255, G: 220, B: 50, A: 255},
-		false,
-	)
+	w, h := p.img.Bounds().Dx(), p.img.Bounds().Dy()
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
+	op.GeoM.Translate(sx, sy)
+	screen.DrawImage(p.img, op)
 }
 
 // RemoveDead filters out dead projectiles in-place without allocating a new slice.

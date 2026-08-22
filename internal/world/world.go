@@ -1,29 +1,25 @@
 package world
 
 import (
-	"image/color"
-
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 const TileSize = 16
 
-var (
-	colorFloor = color.RGBA{R: 25, G: 25, B: 35, A: 255}
-	colorWall  = color.RGBA{R: 70, G: 70, B: 85, A: 255}
-)
-
 type World struct {
 	Tiles         [][]Tile
-	Width, Height int // in tiles
+	Width, Height int
+	tileFloor     *ebiten.Image
+	tileWall      *ebiten.Image
 }
 
-func New(tiles [][]Tile) *World {
+func New(tiles [][]Tile, floor, wall *ebiten.Image) *World {
 	return &World{
-		Tiles:  tiles,
-		Width:  len(tiles[0]),
-		Height: len(tiles),
+		Tiles:     tiles,
+		Width:     len(tiles[0]),
+		Height:    len(tiles),
+		tileFloor: floor,
+		tileWall:  wall,
 	}
 }
 
@@ -43,7 +39,7 @@ func (w *World) PixelToTile(px, py float64) (int, int) {
 	return int(px) / TileSize, int(py) / TileSize
 }
 
-// Draw renders the visible portion of the world.
+// Draw renders the visible portion of the world using tile images.
 // offsetX, offsetY are the camera's top-left in world-pixel space.
 func (w *World) Draw(screen *ebiten.Image, offsetX, offsetY float64, screenW, screenH int) {
 	for ty, row := range w.Tiles {
@@ -53,14 +49,19 @@ func (w *World) Draw(screen *ebiten.Image, offsetX, offsetY float64, screenW, sc
 			if sx+TileSize < 0 || sy+TileSize < 0 || sx > float64(screenW) || sy > float64(screenH) {
 				continue
 			}
-			var c color.RGBA
+			var img *ebiten.Image
 			switch tile {
 			case TileFloor:
-				c = colorFloor
+				img = w.tileFloor
 			case TileWall:
-				c = colorWall
+				img = w.tileWall
 			}
-			vector.DrawFilledRect(screen, float32(sx), float32(sy), TileSize, TileSize, c, false)
+			if img == nil {
+				continue
+			}
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Translate(sx, sy)
+			screen.DrawImage(img, op)
 		}
 	}
 }

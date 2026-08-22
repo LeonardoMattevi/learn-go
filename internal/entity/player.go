@@ -2,11 +2,10 @@ package entity
 
 import (
 	"image"
-	"image/color"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/LeonardoMattevi/go-game/internal/camera"
+	"github.com/LeonardoMattevi/go-game/internal/sprite"
 	"github.com/LeonardoMattevi/go-game/internal/world"
 )
 
@@ -22,15 +21,15 @@ type Player struct {
 	HP, MaxHP     int
 	Mana, MaxMana int
 	Dir           Direction
-	ShootDX       float64 // normalized shoot direction, updated when moving
+	ShootDX       float64
 	ShootDY       float64
-	Invincible    float64 // seconds of invincibility remaining after taking damage
+	Invincible    float64
 	frame         int
 	frameTimer    float64
-	// sprite *ebiten.Image  // wired in Fase 8
+	spr           *sprite.Sprite
 }
 
-func NewPlayer(x, y float64) *Player {
+func NewPlayer(x, y float64, spr *sprite.Sprite) *Player {
 	return &Player{
 		X:       x,
 		Y:       y,
@@ -39,7 +38,8 @@ func NewPlayer(x, y float64) *Player {
 		Mana:    10,
 		MaxMana: 10,
 		Dir:     DirDown,
-		ShootDY: 1, // default facing down
+		ShootDY: 1,
+		spr:     spr,
 	}
 }
 
@@ -151,13 +151,11 @@ func (p *Player) Update(dt float64, w *world.World) error {
 
 func (p *Player) Draw(screen *ebiten.Image, cam camera.Camera) {
 	sx, sy := cam.WorldToScreen(p.X, p.Y)
-	vector.DrawFilledRect(
-		screen,
-		float32(sx)-playerHalfSize, float32(sy)-playerHalfSize,
-		playerHalfSize*2, playerHalfSize*2,
-		color.RGBA{R: 0, G: 200, B: 80, A: 255},
-		false,
-	)
+	// Flash during invincibility frames (hide every other 0.1s block).
+	if p.Invincible > 0 && int(p.Invincible*10)%2 == 0 {
+		return
+	}
+	p.spr.Draw(screen, sx, sy, int(p.Dir), p.frame)
 }
 
 // collidesAt checks whether the player's bounding box at (x, y) overlaps a solid tile.

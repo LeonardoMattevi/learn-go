@@ -2,22 +2,22 @@ package entity
 
 import (
 	"image"
-	"image/color"
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/LeonardoMattevi/go-game/internal/camera"
+	"github.com/LeonardoMattevi/go-game/internal/sprite"
 	"github.com/LeonardoMattevi/go-game/internal/world"
 )
 
 const (
-	enemyHalfSize   = 6
-	enemySpeed      = 55.0  // pixels/second
-	walkerChaseRange  = 160.0
-	shooterRange    = 180.0
-	enemyShootDelay = 2.0 // seconds between shots
-	enemyProjSpeed  = 110.0
+	enemyHalfSize    = 6
+	enemySpeed       = 55.0
+	walkerChaseRange = 160.0
+	shooterRange     = 180.0
+	enemyShootDelay  = 2.0
+	enemyProjSpeed   = 110.0
+	enemyFramesPerDir = 2
 )
 
 type EnemyKind int
@@ -36,17 +36,21 @@ type Enemy struct {
 	frame         int
 	frameTimer    float64
 	alive         bool
+	spr           *sprite.Sprite
+	projImg       *ebiten.Image // image used for projectiles this enemy fires
 }
 
-func NewEnemy(x, y float64, kind EnemyKind) *Enemy {
+func NewEnemy(x, y float64, kind EnemyKind, spr *sprite.Sprite, projImg *ebiten.Image) *Enemy {
 	return &Enemy{
-		X:     x,
-		Y:     y,
-		HP:    3,
-		MaxHP: 3,
-		Kind:  kind,
-		Dir:   DirDown,
-		alive: true,
+		X:       x,
+		Y:       y,
+		HP:      3,
+		MaxHP:   3,
+		Kind:    kind,
+		Dir:     DirDown,
+		alive:   true,
+		spr:     spr,
+		projImg: projImg,
 	}
 }
 
@@ -83,7 +87,7 @@ func (e *Enemy) Update(dt float64, w *world.World, px, py float64) *Projectile {
 			e.frameTimer += dt
 			if e.frameTimer >= frameInterval {
 				e.frameTimer = 0
-				e.frame = (e.frame + 1) % framesPerDir
+				e.frame = (e.frame + 1) % enemyFramesPerDir
 			}
 		}
 
@@ -95,7 +99,7 @@ func (e *Enemy) Update(dt float64, w *world.World, px, py float64) *Projectile {
 			nx, ny := dx/dist, dy/dist
 			e.updateDir(nx, ny)
 			e.shootCooldown = enemyShootDelay
-			return NewProjectile(e.X, e.Y, nx*enemyProjSpeed, ny*enemyProjSpeed, OwnerEnemy, 1)
+			return NewProjectile(e.X, e.Y, nx*enemyProjSpeed, ny*enemyProjSpeed, OwnerEnemy, 1, e.projImg)
 		}
 	}
 
@@ -117,20 +121,7 @@ func (e *Enemy) Draw(screen *ebiten.Image, cam camera.Camera) {
 		return
 	}
 	sx, sy := cam.WorldToScreen(e.X, e.Y)
-	var col color.RGBA
-	switch e.Kind {
-	case EnemyWalker:
-		col = color.RGBA{R: 220, G: 50, B: 50, A: 255}
-	case EnemyShooter:
-		col = color.RGBA{R: 200, G: 110, B: 20, A: 255}
-	}
-	vector.DrawFilledRect(
-		screen,
-		float32(sx)-enemyHalfSize, float32(sy)-enemyHalfSize,
-		enemyHalfSize*2, enemyHalfSize*2,
-		col,
-		false,
-	)
+	e.spr.Draw(screen, sx, sy, 0, e.frame)
 }
 
 func (e *Enemy) collidesAt(x, y float64, w *world.World) bool {
